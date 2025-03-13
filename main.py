@@ -2,6 +2,7 @@ from openai import OpenAI
 import os
 from pdf import text
 from dotenv import load_dotenv
+from linear_integration import create_tickets  # Import the new module
 
 load_dotenv()
 
@@ -15,5 +16,11 @@ response = client.chat.completions.create(
     ]
 )
 
-# Print AI-generated tickets
-print(response.choices[0].message.content)
+# Get AI-generated tickets
+tickets_content = response.choices[0].message.content
+
+# Print the generated tickets
+print(tickets_content)
+
+# Create tickets in Linear
+create_tickets(tickets_content)
