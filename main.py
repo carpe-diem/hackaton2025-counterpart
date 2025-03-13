@@ -19,7 +19,6 @@ response = client.chat.completions.create(
 # Get AI-generated tickets
 tickets_content = response.choices[0].message.content
 
-# Print the generated tickets
 print(tickets_content)
 
 # Create tickets in Linear
