@@ -26,12 +26,17 @@ def create_tickets(tickets_content):
 
     # Parse the tickets from the AI-generated content
     tickets = parse_tickets(tickets_content)
+    
+    # Track successful creations
+    successful_tickets = 0
 
     # Create each ticket in Linear
     for ticket in tickets:
-        create_linear_ticket(ticket)
+        success = create_linear_ticket(ticket)
+        if success:
+            successful_tickets += 1
 
-    print(f"Created {len(tickets)} tickets in Linear")
+    print(f"Successfully created {successful_tickets} out of {len(tickets)} tickets in Linear")
 
 def parse_tickets(content):
     """
@@ -183,6 +188,9 @@ def create_linear_ticket(ticket_data):
 
     Args:
         ticket_data (dict): Dictionary containing ticket information
+        
+    Returns:
+        bool: True if ticket was created successfully, False otherwise
     """
     url = "https://api.linear.app/graphql"
 
@@ -234,13 +242,35 @@ def create_linear_ticket(ticket_data):
 
     try:
         response = requests.post(url, headers=headers, json=payload)
-        response_data = response.json()
-
-        if response.status_code == 200 and response_data.get("data", {}).get("issueCreate", {}).get("success"):
-            issue = response_data["data"]["issueCreate"]["issue"]
-            print(f"Created ticket: {issue['title']} (ID: {issue['id']}, URL: {issue['url']})")
-        else:
-            print(f"Failed to create ticket: {ticket_data['title']}")
-            print(f"Error: {json.dumps(response_data, indent=2)}")
+        
+        # Print response status for debugging
+        print(f"Response status: {response.status_code}")
+        
+        # Check if response is valid JSON
+        try:
+            response_data = response.json()
+            
+            # Check for errors in the response
+            if "errors" in response_data:
+                print(f"API Error: {json.dumps(response_data['errors'], indent=2)}")
+                print(f"Failed to create ticket: {ticket_data['title']}")
+                return False
+            
+            if response.status_code == 200 and response_data.get("data", {}).get("issueCreate", {}).get("success"):
+                issue = response_data["data"]["issueCreate"]["issue"]
+                print(f"Created ticket: {issue['title']} (ID: {issue['id']}, URL: {issue['url']})")
+                return True
+            else:
+                print(f"Failed to create ticket: {ticket_data['title']}")
+                print(f"Response: {json.dumps(response_data, indent=2)}")
+                return False
+                
+        except json.JSONDecodeError:
+            print(f"Failed to parse response as JSON. Raw response: {response.text}")
+            return False
+            
     except Exception as e:
-        print(f"Error creating ticket: {str(e)}") 
+        print(f"Error creating ticket: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False 
